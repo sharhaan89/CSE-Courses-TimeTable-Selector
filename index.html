@@ -143,55 +143,99 @@
         }
         
         .course-block[data-course="ACN"],
-        .cell.slot.filled[data-course="ACN"] {
+        .course-pill[data-course="ACN"] {
             background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
             color: white;
         }
         
         .course-block[data-course="ADS"],
-        .cell.slot.filled[data-course="ADS"] {
+        .course-pill[data-course="ADS"] {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             color: white;
         }
         
         .course-block[data-course="CRYPTO"],
-        .cell.slot.filled[data-course="CRYPTO"] {
+        .course-pill[data-course="CRYPTO"] {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
         }
         
         .course-block[data-course="DL"],
-        .cell.slot.filled[data-course="DL"] {
+        .course-pill[data-course="DL"] {
             background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
             color: #1e293b;
         }
         
         .course-block[data-course="RA"],
-        .cell.slot.filled[data-course="RA"] {
+        .course-pill[data-course="RA"] {
             background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
             color: white;
         }
         
         .course-block[data-course="TIS"],
-        .cell.slot.filled[data-course="TIS"] {
+        .course-pill[data-course="TIS"] {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
         }
         
         .course-block[data-course="SM1"],
         .course-block[data-course="SM2"],
-        .cell.slot.filled[data-course="SM1"],
-        .cell.slot.filled[data-course="SM2"] {
+        .course-pill[data-course="SM1"],
+        .course-pill[data-course="SM2"] {
             background: linear-gradient(135deg, #92400e 0%, #78350f 100%);
             color: white;
         }
         
         .course-block[data-course="MA1"],
         .course-block[data-course="MA2"],
-        .cell.slot.filled[data-course="MA1"],
-        .cell.slot.filled[data-course="MA2"] {
+        .course-pill[data-course="MA1"],
+        .course-pill[data-course="MA2"] {
             background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
             color: white;
+        }
+        
+        .course-pill[data-course="EMPTY"] {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            color: var(--text-dim);
+        }
+        
+        .add-course-btn {
+            padding: 4px 8px;
+            background: rgba(6, 182, 212, 0.2);
+            border: 1px dashed var(--accent);
+            border-radius: 4px;
+            color: var(--accent);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 2px;
+        }
+        
+        .add-course-btn:hover {
+            background: rgba(6, 182, 212, 0.3);
+            border-style: solid;
+        }
+        
+        .remove-course-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        
+        .course-pill:hover .remove-course-btn {
+            display: flex;
         }
         
         .course-block:hover {
@@ -261,8 +305,24 @@
             cursor: pointer;
             position: relative;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px;
+        }
+        
+        .course-pill {
+            padding: 6px 10px;
+            border-radius: 6px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+        
+        .course-pill:hover {
+            transform: scale(1.05);
         }
         
         .cell.slot:hover {
@@ -272,11 +332,6 @@
         .cell.slot.drag-over {
             background: rgba(6, 182, 212, 0.2);
             border: 2px dashed var(--accent);
-        }
-        
-        .cell.slot.empty-slot {
-            background: linear-gradient(135deg, #475569 0%, #334155 100%);
-            color: var(--text-dim);
         }
         
         .cell.break {
@@ -686,13 +741,13 @@
         const displayTimeSlots = ["8-9", "9-10", "10-11", "11-12", "12-2 BREAK", "2-3", "3-4", "4-5"];
         const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
         
-        // Initial timetable (from C++ code)
+        // Initial timetable (from C++ code) - now arrays for multiple courses per slot
         let timetable = [
-            ["RA", "EMPTY", "ACN", "TIS", "CRYPTO", "DL", "ADS"],
-            ["RA", "SM2", "ADS", "DL", "ACN", "TIS", "CRYPTO"],
-            ["RA", "MA2", "SM2", "DL", "TIS", "CRYPTO", "ADS"],
-            ["ADS", "EMPTY", "MA2", "SM2", "ACN", "TIS", "DL"],
-            ["CRYPTO", "ACN", "MA2", "EMPTY", "EMPTY", "EMPTY", "EMPTY"]
+            [["RA"], ["EMPTY"], ["ACN"], ["TIS"], ["CRYPTO"], ["DL"], ["ADS"]],
+            [["RA"], ["SM2"], ["ADS"], ["DL"], ["ACN"], ["TIS"], ["CRYPTO"]],
+            [["RA"], ["MA2"], ["SM2"], ["DL"], ["TIS"], ["CRYPTO"], ["ADS"]],
+            [["ADS"], ["EMPTY"], ["MA2"], ["SM2"], ["ACN"], ["TIS"], ["DL"]],
+            [["CRYPTO"], ["ACN"], ["MA2"], ["EMPTY"], ["EMPTY"], ["EMPTY"], ["EMPTY"]]
         ];
         
         // Initialize student data (converted from C++ logic)
@@ -742,11 +797,15 @@
             }
         }
         
-        // Get common student count between two courses
-        function getCommonCount(c1, c2) {
-            if (c1 === "EMPTY" || c2 === "EMPTY") return 0;
+        // Get common student count between two slots (each slot can have multiple courses)
+        function getCommonCount(courses1, courses2) {
+            // Filter out EMPTY courses
+            const validCourses1 = courses1.filter(c => c !== "EMPTY");
+            const validCourses2 = courses2.filter(c => c !== "EMPTY");
             
-            if (!students[c1] || !students[c2]) return 0;
+            if (validCourses1.length === 0 || validCourses2.length === 0) {
+                return 0;
+            }
             
             let cnt = 0;
             for (let i = 101; i <= 265; i++) {
@@ -754,7 +813,18 @@
                     i = 200; // Will be incremented to 201
                     continue;
                 }
-                if (students[c1].has(i) && students[c2].has(i)) {
+                
+                // Check if student has class in slot 1
+                const hasClass1 = validCourses1.some(course => 
+                    students[course] && students[course].has(i)
+                );
+                
+                // Check if student has class in slot 2
+                const hasClass2 = validCourses2.some(course => 
+                    students[course] && students[course].has(i)
+                );
+                
+                if (hasClass1 && hasClass2) {
                     cnt++;
                 }
             }
@@ -779,8 +849,13 @@
             for (let day = 0; day < 5; day++) {
                 let last = -1;
                 for (let slot = 0; slot <= 6; slot++) {
-                    const course = slots[day][slot];
-                    if (students[course] && students[course].has(student)) {
+                    const courses = slots[day][slot];
+                    // Check if student has any class in this slot
+                    const hasClass = courses.some(course => 
+                        course !== "EMPTY" && students[course] && students[course].has(student)
+                    );
+                    
+                    if (hasClass) {
                         if (last !== -1) {
                             currPenalty += slot - last - 1;
                         }
@@ -870,15 +945,7 @@
                         cell.dataset.day = dayIndex;
                         cell.dataset.slot = slotIndex;
                         
-                        const course = timetable[dayIndex][slotIndex];
-                        cell.textContent = course;
-                        cell.dataset.course = course;
-                        
-                        if (course === 'EMPTY') {
-                            cell.classList.add('empty-slot');
-                        } else {
-                            cell.classList.add('filled');
-                        }
+                        renderCell(cell, dayIndex, slotIndex);
                         
                         cell.addEventListener('dragover', handleDragOver);
                         cell.addEventListener('drop', handleDrop);
@@ -891,6 +958,63 @@
         }
         
         let draggedCourse = null;
+        
+        function renderCell(cell, day, slot) {
+            cell.innerHTML = '';
+            const courses = timetable[day][slot];
+            
+            courses.forEach((course, index) => {
+                const pill = document.createElement('div');
+                pill.className = 'course-pill';
+                pill.dataset.course = course;
+                pill.style.position = 'relative';
+                
+                const text = document.createElement('span');
+                text.textContent = course;
+                pill.appendChild(text);
+                
+                // Add remove button for non-EMPTY courses
+                if (course !== 'EMPTY') {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-course-btn';
+                    removeBtn.textContent = '×';
+                    removeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        removeCourse(day, slot, index);
+                    };
+                    pill.appendChild(removeBtn);
+                }
+                
+                cell.appendChild(pill);
+            });
+            
+            // Add "+" button if less than 2 courses
+            if (courses.length < 2 || (courses.length === 1 && courses[0] === 'EMPTY')) {
+                const addBtn = document.createElement('div');
+                addBtn.className = 'add-course-btn';
+                addBtn.textContent = '+ Add Course';
+                addBtn.onclick = () => {
+                    // This will be handled by drop event
+                };
+                cell.appendChild(addBtn);
+            }
+        }
+        
+        function removeCourse(day, slot, courseIndex) {
+            const courses = timetable[day][slot];
+            courses.splice(courseIndex, 1);
+            
+            // If no courses left, add EMPTY
+            if (courses.length === 0) {
+                courses.push('EMPTY');
+            }
+            
+            // Find and re-render the cell
+            const cell = document.querySelector(`[data-day="${day}"][data-slot="${slot}"]`);
+            if (cell) {
+                renderCell(cell, day, slot);
+            }
+        }
         
         function handleDragStart(e) {
             draggedCourse = e.target.dataset.course;
@@ -914,18 +1038,29 @@
             const day = parseInt(cell.dataset.day);
             const slot = parseInt(cell.dataset.slot);
             
-            // Update timetable
-            timetable[day][slot] = draggedCourse;
+            const courses = timetable[day][slot];
             
-            // Update cell display
-            cell.textContent = draggedCourse;
-            cell.dataset.course = draggedCourse;
-            cell.classList.remove('filled', 'empty-slot');
-            if (draggedCourse === 'EMPTY') {
-                cell.classList.add('empty-slot');
-            } else {
-                cell.classList.add('filled');
+            // Remove EMPTY if it exists and we're adding a real course
+            if (draggedCourse !== 'EMPTY') {
+                const emptyIndex = courses.indexOf('EMPTY');
+                if (emptyIndex !== -1) {
+                    courses.splice(emptyIndex, 1);
+                }
             }
+            
+            // Check if we can add the course
+            if (courses.length < 2) {
+                // Don't add duplicate courses
+                if (!courses.includes(draggedCourse)) {
+                    courses.push(draggedCourse);
+                }
+            } else {
+                // Replace the last course if already at max capacity
+                courses[courses.length - 1] = draggedCourse;
+            }
+            
+            // Re-render the cell
+            renderCell(cell, day, slot);
             
             // Remove dragging class
             document.querySelectorAll('.dragging').forEach(el => {
@@ -953,27 +1088,18 @@
         
         function resetTimetable() {
             timetable = [
-                ["RA", "EMPTY", "ACN", "TIS", "CRYPTO", "DL", "ADS"],
-                ["RA", "EMPTY", "ADS", "DL", "ACN", "TIS", "CRYPTO"],
-                ["RA", "MA2", "SM2", "DL", "TIS", "CRYPTO", "ADS"],
-                ["ADS", "EMPTY", "MA2", "SM2", "ACN", "TIS", "DL"],
-                ["CRYPTO", "ACN", "MA2", "EMPTY", "EMPTY", "EMPTY", "EMPTY"]
+                [["RA"], ["EMPTY"], ["ACN"], ["TIS"], ["CRYPTO"], ["DL"], ["ADS"]],
+                [["RA"], ["EMPTY"], ["ADS"], ["DL"], ["ACN"], ["TIS"], ["CRYPTO"]],
+                [["RA"], ["MA2"], ["SM2"], ["DL"], ["TIS"], ["CRYPTO"], ["ADS"]],
+                [["ADS"], ["EMPTY"], ["MA2"], ["SM2"], ["ACN"], ["TIS"], ["DL"]],
+                [["CRYPTO"], ["ACN"], ["MA2"], ["EMPTY"], ["EMPTY"], ["EMPTY"], ["EMPTY"]]
             ];
             
             // Update all cells
             document.querySelectorAll('.cell.slot').forEach(cell => {
                 const day = parseInt(cell.dataset.day);
                 const slot = parseInt(cell.dataset.slot);
-                const course = timetable[day][slot];
-                
-                cell.textContent = course;
-                cell.dataset.course = course;
-                cell.classList.remove('filled', 'empty-slot');
-                if (course === 'EMPTY') {
-                    cell.classList.add('empty-slot');
-                } else {
-                    cell.classList.add('filled');
-                }
+                renderCell(cell, day, slot);
             });
             
             document.getElementById('results').classList.add('hidden');
@@ -1082,5 +1208,4 @@
         initUI();
     </script>
 </body>
-
 </html>
