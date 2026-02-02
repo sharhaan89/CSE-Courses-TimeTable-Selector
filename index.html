@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable Optimizer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=DM+Sans:wght@400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #0f172a;
+            --secondary: #1e293b;
+            --accent: #06b6d4;
+            --accent-dark: #0891b2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slideDown 0.6s ease-out;
+        }
+        
+        h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -2px;
+        }
+        
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .results {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            animation: fadeIn 0.6s ease-out 0.3s both;
+        }
+        
+        .results.hidden {
+            display: none;
+        }
+        
+        .course-palette {
+            background: var(--secondary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+            animation: slideRight 0.6s ease-out 0.1s both;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .palette-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .course-block {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: grab;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 2px solid transparent;
+        }
+        
+        .course-block[data-course="ACN"],
+        .cell.slot.filled[data-course="ACN"] {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            color: white;
+        }
+        
+        .course-block[data-course="ADS"],
+        .cell.slot.filled[data-course="ADS"] {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .course-block[data-course="CRYPTO"],
+        .cell.slot.filled[data-course="CRYPTO"] {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+        
+        .course-block[data-course="DL"],
+        .cell.slot.filled[data-course="DL"] {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #1e293b;
+        }
+        
+        .course-block[data-course="RA"],
+        .cell.slot.filled[data-course="RA"] {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: white;
+        }
+        
+        .course-block[data-course="TIS"],
+        .cell.slot.filled[data-course="TIS"] {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .course-block[data-course="SM1"],
+        .course-block[data-course="SM2"],
+        .cell.slot.filled[data-course="SM1"],
+        .cell.slot.filled[data-course="SM2"] {
+            background: linear-gradient(135deg, #92400e 0%, #78350f 100%);
+            color: white;
+        }
+        
+        .course-block[data-course="MA1"],
+        .course-block[data-course="MA2"],
+        .cell.slot.filled[data-course="MA1"],
+        .cell.slot.filled[data-course="MA2"] {
+            background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+            color: white;
+        }
+        
+        .course-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .course-block:active {
+            cursor: grabbing;
+        }
+        
+        .course-block.empty {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            box-shadow: 0 4px 12px rgba(71, 85, 105, 0.2);
+        }
+        
+        .timetable-container {
+            background: var(--secondary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            overflow-x: auto;
+            animation: slideLeft 0.6s ease-out 0.2s both;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .timetable {
+            display: grid;
+            grid-template-columns: 100px repeat(8, 1fr);
+            gap: 2px;
+            min-width: 1000px;
+            background: var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .cell {
+            background: var(--primary);
+            padding: 16px;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .cell.header {
+            background: var(--secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+        
+        .cell.day {
+            background: var(--secondary);
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--accent);
+            border-right: 2px solid var(--accent);
+        }
+        
+        .cell.slot {
+            cursor: pointer;
+            position: relative;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .cell.slot:hover {
+            background: #1e3a4a;
+        }
+        
+        .cell.slot.drag-over {
+            background: rgba(6, 182, 212, 0.2);
+            border: 2px dashed var(--accent);
+        }
+        
+        .cell.slot.empty-slot {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            color: var(--text-dim);
+        }
+        
+        .cell.break {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--warning);
+            border-left: 2px solid var(--warning);
+            border-right: 2px solid var(--warning);
+            pointer-events: none;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            animation: fadeIn 0.6s ease-out 0.4s both;
+        }
+        
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'DM Sans', sans-serif;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #0891b2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(6, 182, 212, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+        }
+        
+        .result-card {
+            background: var(--secondary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .result-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+        
+        .result-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .result-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .result-value.score {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .result-value.penalty {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideRight {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes slideLeft {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .dragging {
+            opacity: 0.5;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--secondary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            max-width: 1200px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideDown 0.4s ease-out;
+        }
+        
+        .modal-header {
+            padding: 30px;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .close-btn {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            transform: rotate(90deg);
+        }
+        
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .group-section {
+            margin-bottom: 40px;
+        }
+        
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: var(--primary);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 2px solid var(--border);
+        }
+        
+        .group-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        
+        .group-total {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .group-total-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .group-total-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .student-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+        }
+        
+        .student-card {
+            background: var(--primary);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .student-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+        }
+        
+        .student-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        
+        .student-penalty {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .student-penalty-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Timetable Optimizer</h1>
+            <p class="subtitle">Drag & Drop Course Scheduler</p>
+        </header>
+        
+        <div class="main-grid">
+            <div class="course-palette">
+                <div class="palette-title">Courses</div>
+                <div id="coursePalette"></div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="results hidden" id="results">
+                    <div class="result-card">
+                        <div class="result-label">Score</div>
+                        <div class="result-value score" id="scoreValue">0</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Penalty</div>
+                        <div class="result-value penalty" id="penaltyValue">0</div>
+                    </div>
+                </div>
+                
+                <div class="timetable-container">
+                    <div class="timetable" id="timetable"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" onclick="computeMetrics()">
+                <span>Calculate Score & Penalty</span>
+            </button>
+            <button class="btn btn-secondary" onclick="showStudentPenalties()">
+                <span>View Student Penalties</span>
+            </button>
+            <button class="btn btn-secondary" onclick="resetTimetable()">
+                <span>Reset Timetable</span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="modal" id="penaltyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Student Penalties Breakdown</div>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Student data structure
+        const students = {};
+        
+        // Course names
+        const courses = ["ACN", "ADS", "CRYPTO", "DL", "RA", "TIS", "SM1", "MA1", "SM2", "MA2"];
+        
+        // Time slots
+        const timeSlots = ["8-9", "9-10", "10-11", "11-12", "2-3", "3-4", "4-5"];
+        const displayTimeSlots = ["8-9", "9-10", "10-11", "11-12", "12-2 BREAK", "2-3", "3-4", "4-5"];
+        const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+        
+        // Initial timetable (from C++ code)
+        let timetable = [
+            ["RA", "EMPTY", "ACN", "TIS", "CRYPTO", "DL", "ADS"],
+            ["RA", "EMPTY", "ADS", "DL", "ACN", "TIS", "CRYPTO"],
+            ["RA", "MA2", "SM2", "DL", "TIS", "CRYPTO", "ADS"],
+            ["ADS", "EMPTY", "MA2", "SM2", "ACN", "TIS", "DL"],
+            ["CRYPTO", "ACN", "MA2", "EMPTY", "EMPTY", "EMPTY", "EMPTY"]
+        ];
+        
+        // Initialize student data (converted from C++ logic)
+        function setStudents() {
+            // Clear students
+            for (let course of courses) {
+                students[course] = new Set();
+            }
+            
+            const coreCourses = ["ACN", "ADS", "CRYPTO", "DL", "RA", "TIS"];
+            const numCourses = coreCourses.length;
+            
+            // Prepare roll numbers
+            const rolls = [];
+            for (let r = 101; r <= 166; r++) rolls.push(r);
+            for (let r = 201; r <= 265; r++) rolls.push(r);
+            
+            // Add SM and MA courses
+            for (let r = 101; r <= 166; r++) {
+                students["SM1"].add(r);
+                students["MA1"].add(r);
+            }
+            for (let r = 201; r <= 265; r++) {
+                students["SM2"].add(r);
+                students["MA2"].add(r);
+            }
+            
+            // Counts for balanced distribution
+            const counts = new Array(numCourses).fill(0);
+            
+            // Assign each student to 3 core courses
+            for (let roll of rolls) {
+                const indices = Array.from({length: numCourses}, (_, i) => i);
+                
+                // Sort by count, then by index for deterministic tie-breaking
+                indices.sort((a, b) => {
+                    if (counts[a] !== counts[b]) return counts[a] - counts[b];
+                    return a - b;
+                });
+                
+                // Assign to first 3 courses
+                for (let k = 0; k < 3; k++) {
+                    const ci = indices[k];
+                    students[coreCourses[ci]].add(roll);
+                    counts[ci]++;
+                }
+            }
+        }
+        
+        // Get common student count between two courses
+        function getCommonCount(c1, c2) {
+            if (c1 === "EMPTY" || c2 === "EMPTY") return 0;
+            
+            if (!students[c1] || !students[c2]) return 0;
+            
+            let cnt = 0;
+            for (let i = 101; i <= 265; i++) {
+                if (i === 167) {
+                    i = 200; // Will be incremented to 201
+                    continue;
+                }
+                if (students[c1].has(i) && students[c2].has(i)) {
+                    cnt++;
+                }
+            }
+            return cnt;
+        }
+        
+        // Compute score
+        function computeScore(slots) {
+            let score = 0;
+            for (let day = 0; day < 5; day++) {
+                for (let i = 1; i <= 6; i++) {
+                    if (i === 4) continue; // Skip lunch break
+                    score += getCommonCount(slots[day][i - 1], slots[day][i]);
+                }
+            }
+            return score;
+        }
+        
+        // Compute penalty for a single student
+        function computeStudentPenalty(student, slots) {
+            let currPenalty = 0;
+            for (let day = 0; day < 5; day++) {
+                let last = -1;
+                for (let slot = 0; slot <= 6; slot++) {
+                    const course = slots[day][slot];
+                    if (students[course] && students[course].has(student)) {
+                        if (last !== -1) {
+                            currPenalty += slot - last - 1;
+                        }
+                        last = slot;
+                    }
+                }
+            }
+            return currPenalty;
+        }
+        
+        // Compute penalty
+        function computePenalty(slots) {
+            let totPenalty = 0;
+            
+            for (let student = 101; student <= 265; student++) {
+                if (student === 167) {
+                    student = 200; // Will be incremented to 201
+                    continue;
+                }
+                
+                totPenalty += computeStudentPenalty(student, slots);
+            }
+            return totPenalty;
+        }
+        
+        // Initialize UI
+        function initUI() {
+            // Create course palette
+            const palette = document.getElementById('coursePalette');
+            courses.forEach(course => {
+                const block = document.createElement('div');
+                block.className = 'course-block';
+                block.textContent = course;
+                block.draggable = true;
+                block.dataset.course = course;
+                block.addEventListener('dragstart', handleDragStart);
+                palette.appendChild(block);
+            });
+            
+            // Add EMPTY block
+            const emptyBlock = document.createElement('div');
+            emptyBlock.className = 'course-block empty';
+            emptyBlock.textContent = 'EMPTY';
+            emptyBlock.draggable = true;
+            emptyBlock.dataset.course = 'EMPTY';
+            emptyBlock.addEventListener('dragstart', handleDragStart);
+            palette.appendChild(emptyBlock);
+            
+            // Create timetable grid
+            const table = document.getElementById('timetable');
+            
+            // Header row
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'cell header';
+            table.appendChild(emptyCell);
+            
+            displayTimeSlots.forEach((slot, index) => {
+                const cell = document.createElement('div');
+                if (index === 4) {
+                    cell.className = 'cell break';
+                } else {
+                    cell.className = 'cell header';
+                }
+                cell.textContent = slot;
+                table.appendChild(cell);
+            });
+            
+            // Day rows
+            days.forEach((day, dayIndex) => {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'cell day';
+                dayCell.textContent = day;
+                table.appendChild(dayCell);
+                
+                displayTimeSlots.forEach((displaySlot, displayIndex) => {
+                    if (displayIndex === 4) {
+                        // Break column
+                        const breakCell = document.createElement('div');
+                        breakCell.className = 'cell break';
+                        breakCell.textContent = 'BREAK';
+                        table.appendChild(breakCell);
+                    } else {
+                        // Regular slot
+                        const slotIndex = displayIndex > 4 ? displayIndex - 1 : displayIndex;
+                        const cell = document.createElement('div');
+                        cell.className = 'cell slot';
+                        cell.dataset.day = dayIndex;
+                        cell.dataset.slot = slotIndex;
+                        
+                        const course = timetable[dayIndex][slotIndex];
+                        cell.textContent = course;
+                        cell.dataset.course = course;
+                        
+                        if (course === 'EMPTY') {
+                            cell.classList.add('empty-slot');
+                        } else {
+                            cell.classList.add('filled');
+                        }
+                        
+                        cell.addEventListener('dragover', handleDragOver);
+                        cell.addEventListener('drop', handleDrop);
+                        cell.addEventListener('dragleave', handleDragLeave);
+                        
+                        table.appendChild(cell);
+                    }
+                });
+            });
+        }
+        
+        let draggedCourse = null;
+        
+        function handleDragStart(e) {
+            draggedCourse = e.target.dataset.course;
+            e.target.classList.add('dragging');
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            const cell = e.currentTarget;
+            cell.classList.remove('drag-over');
+            
+            const day = parseInt(cell.dataset.day);
+            const slot = parseInt(cell.dataset.slot);
+            
+            // Update timetable
+            timetable[day][slot] = draggedCourse;
+            
+            // Update cell display
+            cell.textContent = draggedCourse;
+            cell.dataset.course = draggedCourse;
+            cell.classList.remove('filled', 'empty-slot');
+            if (draggedCourse === 'EMPTY') {
+                cell.classList.add('empty-slot');
+            } else {
+                cell.classList.add('filled');
+            }
+            
+            // Remove dragging class
+            document.querySelectorAll('.dragging').forEach(el => {
+                el.classList.remove('dragging');
+            });
+        }
+        
+        function computeMetrics() {
+            const score = (computeScore(timetable) / 10).toFixed(1);
+            const penalty = (computePenalty(timetable) / 100).toFixed(2);
+            
+            document.getElementById('scoreValue').textContent = score;
+            document.getElementById('penaltyValue').textContent = penalty;
+            document.getElementById('results').classList.remove('hidden');
+            
+            // Animate result cards
+            const cards = document.querySelectorAll('.result-card');
+            cards.forEach((card, index) => {
+                card.style.animation = 'none';
+                setTimeout(() => {
+                    card.style.animation = `fadeIn 0.4s ease-out ${index * 0.1}s both`;
+                }, 10);
+            });
+        }
+        
+        function resetTimetable() {
+            timetable = [
+                ["RA", "EMPTY", "ACN", "TIS", "CRYPTO", "DL", "ADS"],
+                ["RA", "EMPTY", "ADS", "DL", "ACN", "TIS", "CRYPTO"],
+                ["RA", "MA2", "SM2", "DL", "TIS", "CRYPTO", "ADS"],
+                ["ADS", "EMPTY", "MA2", "SM2", "ACN", "TIS", "DL"],
+                ["CRYPTO", "ACN", "MA2", "EMPTY", "EMPTY", "EMPTY", "EMPTY"]
+            ];
+            
+            // Update all cells
+            document.querySelectorAll('.cell.slot').forEach(cell => {
+                const day = parseInt(cell.dataset.day);
+                const slot = parseInt(cell.dataset.slot);
+                const course = timetable[day][slot];
+                
+                cell.textContent = course;
+                cell.dataset.course = course;
+                cell.classList.remove('filled', 'empty-slot');
+                if (course === 'EMPTY') {
+                    cell.classList.add('empty-slot');
+                } else {
+                    cell.classList.add('filled');
+                }
+            });
+            
+            document.getElementById('results').classList.add('hidden');
+        }
+        
+        function showStudentPenalties() {
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = '';
+            
+            // Group 1: Students 101-166
+            const group1Students = [];
+            let group1Total = 0;
+            for (let i = 101; i <= 166; i++) {
+                const penalty = computeStudentPenalty(i, timetable);
+                group1Students.push({ id: i, penalty });
+                group1Total += penalty;
+            }
+            
+            // Group 2: Students 201-265
+            const group2Students = [];
+            let group2Total = 0;
+            for (let i = 201; i <= 265; i++) {
+                const penalty = computeStudentPenalty(i, timetable);
+                group2Students.push({ id: i, penalty });
+                group2Total += penalty;
+            }
+            
+            // Create Group 1 section
+            const group1Section = document.createElement('div');
+            group1Section.className = 'group-section';
+            group1Section.innerHTML = `
+                <div class="group-header">
+                    <div class="group-title">Group 1 (Roll 101-166)</div>
+                    <div class="group-total">
+                        <span class="group-total-label">Total Penalty:</span>
+                        <span class="group-total-value">${(group1Total / 100).toFixed(2)}</span>
+                    </div>
+                </div>
+                <div class="student-grid" id="group1Grid"></div>
+            `;
+            modalBody.appendChild(group1Section);
+            
+            const group1Grid = document.getElementById('group1Grid');
+            group1Students.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.innerHTML = `
+                    <div class="student-id">#${student.id}</div>
+                    <div class="student-penalty">${(student.penalty / 100).toFixed(2)}</div>
+                    <div class="student-penalty-label">Penalty</div>
+                `;
+                group1Grid.appendChild(card);
+            });
+            
+            // Create Group 2 section
+            const group2Section = document.createElement('div');
+            group2Section.className = 'group-section';
+            group2Section.innerHTML = `
+                <div class="group-header">
+                    <div class="group-title">Group 2 (Roll 201-265)</div>
+                    <div class="group-total">
+                        <span class="group-total-label">Total Penalty:</span>
+                        <span class="group-total-value">${(group2Total / 100).toFixed(2)}</span>
+                    </div>
+                </div>
+                <div class="student-grid" id="group2Grid"></div>
+            `;
+            modalBody.appendChild(group2Section);
+            
+            const group2Grid = document.getElementById('group2Grid');
+            group2Students.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.innerHTML = `
+                    <div class="student-id">#${student.id}</div>
+                    <div class="student-penalty">${(student.penalty / 100).toFixed(2)}</div>
+                    <div class="student-penalty-label">Penalty</div>
+                `;
+                group2Grid.appendChild(card);
+            });
+            
+            document.getElementById('penaltyModal').classList.add('show');
+        }
+        
+        function closeModal() {
+            document.getElementById('penaltyModal').classList.remove('show');
+        }
+        
+        // Close modal when clicking outside
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('penaltyModal');
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+        
+        // Initialize everything
+        setStudents();
+        initUI();
+    </script>
+</body>
+</html>
