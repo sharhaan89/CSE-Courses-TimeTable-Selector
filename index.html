@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timetable Optimizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=DM+Sans:wght@400;500;700&display=swap');
         
@@ -509,14 +510,13 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(6px);
             display: none;
             align-items: center;
             justify-content: center;
             z-index: 1000;
-            padding: 20px;
-            animation: fadeIn 0.3s ease-out;
+            padding: 16px;
         }
         
         .modal.show {
@@ -527,22 +527,23 @@
             background: var(--secondary);
             border: 2px solid var(--border);
             border-radius: 16px;
-            max-width: 1200px;
-            width: 100%;
-            max-height: 90vh;
+            max-width: 1500px;
+            width: 95vw;
+            max-height: 95vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
             animation: slideDown 0.4s ease-out;
         }
         
         .modal-header {
-            padding: 30px;
+            padding: 20px 28px;
             border-bottom: 2px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
         
         .modal-title {
@@ -577,8 +578,10 @@
         }
         
         .modal-body {
-            padding: 30px;
+            padding: 24px 28px;
             overflow-y: auto;
+            flex: 1;
+            min-height: 0;
         }
         
         .group-section {
@@ -673,6 +676,138 @@
             letter-spacing: 1px;
             margin-top: 4px;
         }
+        
+        .stats-section {
+            margin-top: 18px;
+            padding: 20px 24px;
+            background: var(--primary);
+            border-radius: 12px;
+            border: 2px solid var(--border);
+        }
+        .stats-section:first-child { margin-top: 0; }
+        
+        .stats-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 0;
+        }
+        
+        .stat-box {
+            background: var(--secondary);
+            padding: 12px 8px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid var(--border);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+        
+        .stat-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .chart-container {
+            background: var(--secondary);
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            height: 320px;
+            position: relative;
+        }
+        canvas { max-height: 100%; }
+
+        /* ── Fairness banner ── */
+        .fairness-banner {
+            display: flex; align-items: center; justify-content: center;
+            gap: 20px;
+            background: var(--primary);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            padding: 20px 28px;
+            margin-bottom: 22px;
+        }
+        .fairness-ring { width: 78px; height: 78px; position: relative; flex-shrink: 0; }
+        .fairness-ring svg { width:100%; height:100%; transform: rotate(-90deg); }
+        .fairness-ring .ring-bg  { fill:none; stroke: var(--border); stroke-width:8; }
+        .fairness-ring .ring-fill{ fill:none; stroke-width:8; stroke-linecap:round;
+            transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1), stroke .5s; }
+        .fairness-ring-label {
+            position:absolute; inset:0;
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            font-family:'JetBrains Mono',monospace;
+        }
+        .fairness-ring-label .score-num { font-size:1.35rem; font-weight:800; }
+        .fairness-ring-label .score-den  { font-size:0.62rem; color:var(--text-dim); }
+        .fairness-text { display:flex; flex-direction:column; }
+        .fairness-text .ft-title {
+            font-family:'JetBrains Mono',monospace;
+            font-size:1rem; font-weight:700; color:var(--text); margin-bottom:3px;
+        }
+        .fairness-text .ft-desc { font-size:0.8rem; color:var(--text-dim); max-width:360px; line-height:1.45; }
+
+        /* ── stat-box colour variants ── */
+        .stat-box.good { border-color:var(--success); }
+        .stat-box.good .stat-value { background:linear-gradient(135deg,var(--success),#34d399);-webkit-background-clip:text;background-clip:text; }
+        .stat-box.warn { border-color:var(--warning); }
+        .stat-box.warn .stat-value { background:linear-gradient(135deg,var(--warning),#fcd34d);-webkit-background-clip:text;background-clip:text; }
+        .stat-box.bad  { border-color:var(--danger); }
+        .stat-box.bad  .stat-value { background:linear-gradient(135deg,var(--danger),#f87171);-webkit-background-clip:text;background-clip:text; }
+
+        /* ── two-column chart row ── */
+        .charts-row {
+            display:grid; grid-template-columns:1.7fr 1fr; gap:18px;
+        }
+        @media(max-width:780px){ .charts-row{ grid-template-columns:1fr; } }
+
+        /* ── boxplot ── */
+        .boxplot-wrap {
+            background:var(--secondary); border:2px solid var(--border);
+            border-radius:12px; padding:16px 18px 14px;
+            display:flex; flex-direction:column; align-items:stretch;
+            height:320px;
+        }
+        .boxplot-wrap .bp-title {
+            font-family:'JetBrains Mono',monospace;
+            font-size:0.9rem; font-weight:700; color:var(--accent);
+            margin-bottom:8px; text-align:center;
+        }
+        .boxplot-wrap svg { width:100%; height:100%; min-height:240px; display:block; }
+
+        /* ── histogram legend ── */
+        .hist-legend {
+            display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:8px;
+        }
+        .hist-legend-item { display:flex; align-items:center; gap:5px;
+            font-size:0.75rem; color:var(--text-dim); font-family:'JetBrains Mono',monospace; }
+        .hist-legend-swatch { width:13px; height:13px; border-radius:3px; }
     </style>
 </head>
 <body>
@@ -713,6 +848,9 @@
             <button class="btn btn-secondary" onclick="showStudentPenalties()">
                 <span>View Student Penalties</span>
             </button>
+            <button class="btn btn-secondary" onclick="showStatistics()">
+                <span>View Statistics & Graph</span>
+            </button>
             <button class="btn btn-secondary" onclick="resetTimetable()">
                 <span>Reset Timetable</span>
             </button>
@@ -723,9 +861,19 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">Student Penalties Breakdown</div>
-                <button class="close-btn" onclick="closeModal()">×</button>
+                <button class="close-btn" onclick="closeModal('penaltyModal')">×</button>
             </div>
             <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+    
+    <div class="modal" id="statsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Penalty Distribution Statistics</div>
+                <button class="close-btn" onclick="closeModal('statsModal')">×</button>
+            </div>
+            <div class="modal-body" id="statsModalBody"></div>
         </div>
     </div>
     
@@ -744,7 +892,7 @@
         // Initial timetable (from C++ code) - now arrays for multiple courses per slot
         let timetable = [
             [["RA"], ["EMPTY"], ["ACN"], ["TIS"], ["CRYPTO"], ["DL"], ["ADS"]],
-            [["RA"], ["SM2"], ["ADS"], ["DL"], ["ACN"], ["TIS"], ["CRYPTO"]],
+            [["RA"], ["EMPTY"], ["ADS"], ["DL"], ["ACN"], ["TIS"], ["CRYPTO"]],
             [["RA"], ["MA2"], ["SM2"], ["DL"], ["TIS"], ["CRYPTO"], ["ADS"]],
             [["ADS"], ["EMPTY"], ["MA2"], ["SM2"], ["ACN"], ["TIS"], ["DL"]],
             [["CRYPTO"], ["ACN"], ["MA2"], ["EMPTY"], ["EMPTY"], ["EMPTY"], ["EMPTY"]]
@@ -1184,22 +1332,441 @@
             document.getElementById('penaltyModal').classList.add('show');
         }
         
-        function closeModal() {
-            document.getElementById('penaltyModal').classList.remove('show');
+        function calculateStatistics(penalties) {
+            const n = penalties.length;
+            const sorted = [...penalties].sort((a, b) => a - b);
+            
+            // Mean
+            const mean = penalties.reduce((sum, p) => sum + p, 0) / n;
+            
+            // Median
+            const median = n % 2 === 0
+                ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2
+                : sorted[Math.floor(n / 2)];
+            
+            // Mode (most frequent value)
+            const frequency = {};
+            penalties.forEach(p => {
+                frequency[p] = (frequency[p] || 0) + 1;
+            });
+            const maxFreq = Math.max(...Object.values(frequency));
+            const modes = Object.keys(frequency).filter(p => frequency[p] === maxFreq).map(Number);
+            const mode = modes.length === n ? null : modes[0]; // No mode if all unique
+            
+            // Standard Deviation
+            const variance = penalties.reduce((sum, p) => sum + Math.pow(p - mean, 2), 0) / n;
+            const stdDev = Math.sqrt(variance);
+            
+            // Range
+            const min = sorted[0];
+            const max = sorted[n - 1];
+            const range = max - min;
+            
+            // Quartiles
+            const q1 = sorted[Math.floor(n * 0.25)];
+            const q3 = sorted[Math.floor(n * 0.75)];
+            const iqr = q3 - q1;
+
+            // Skewness (Fisher)
+            let skewness = 0;
+            if (stdDev > 0) {
+                skewness = (penalties.reduce((s, p) => s + Math.pow((p - mean) / stdDev, 3), 0)) * n / ((n-1)*(n-2) || 1);
+            }
+
+            // Excess Kurtosis (Fisher)
+            let kurtosis = 0;
+            if (stdDev > 0 && n > 3) {
+                const m4 = penalties.reduce((s, p) => s + Math.pow(p - mean, 4), 0) / n;
+                kurtosis = (m4 / (variance * variance)) - 3;
+            }
+
+            return {
+                mean, median, mode, stdDev, variance,
+                min, max, range, q1, q3, iqr,
+                skewness, kurtosis,
+                count: n
+            };
+        }
+        
+        function showStatistics() {
+            const modalBody = document.getElementById('statsModalBody');
+            modalBody.innerHTML = '';
+
+            /* ── gather penalties ── */
+            const allPenalties = [];
+            for (let i = 101; i <= 166; i++) allPenalties.push(computeStudentPenalty(i, timetable) / 100);
+            for (let i = 201; i <= 265; i++) allPenalties.push(computeStudentPenalty(i, timetable) / 100);
+
+            const stats = calculateStatistics(allPenalties);
+
+            /* ── Fairness Score: 0-100.  CV = stdDev/mean; score = max(0, 100 - CV*100) ── */
+            const cv = stats.mean === 0 ? 0 : (stats.stdDev / stats.mean);
+            const fairness = Math.max(0, Math.min(100, Math.round(100 - cv * 100)));
+            const fairColor = fairness >= 70 ? 'var(--success)' : fairness >= 45 ? 'var(--warning)' : 'var(--danger)';
+            const fairLabel = fairness >= 70 ? 'Good' : fairness >= 45 ? 'Moderate' : 'Poor';
+            const fairDesc = fairness >= 70
+                ? 'Penalties are distributed fairly evenly across students.'
+                : fairness >= 45
+                    ? 'Some imbalance exists — a few students bear more penalty than others.'
+                    : 'Significant imbalance — penalty is concentrated on certain students.';
+            const circumf = 2 * Math.PI * 34; // r=34
+
+            /* ── 1  Fairness Banner ── */
+            modalBody.innerHTML += `
+            <div class="fairness-banner">
+                <div class="fairness-ring">
+                    <svg viewBox="0 0 78 78">
+                        <circle class="ring-bg"  cx="39" cy="39" r="34"/>
+                        <circle class="ring-fill" cx="39" cy="39" r="34"
+                            style="stroke:${fairColor};
+                                   stroke-dasharray:${circumf};
+                                   stroke-dashoffset:${circumf * (1 - fairness/100)}"/>
+                    </svg>
+                    <div class="fairness-ring-label">
+                        <span class="score-num" style="color:${fairColor}">${fairness}</span>
+                        <span class="score-den">/ 100</span>
+                    </div>
+                </div>
+                <div class="fairness-text">
+                    <span class="ft-title">Fairness Score — ${fairLabel}</span>
+                    <span class="ft-desc">${fairDesc}</span>
+                </div>
+            </div>`;
+
+            /* ── helper: colour a stat-box based on stdDev / IQR ── */
+            function spreadClass(val) {
+                // lower spread = better
+                if (val <= 0.15) return 'good';
+                if (val <= 0.4)  return 'warn';
+                return 'bad';
+            }
+
+            /* ── 2  Stats Grid ── */
+            modalBody.innerHTML += `
+            <div class="stats-section">
+                <div class="stats-title">Statistical Summary</div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Count</div>
+                        <div class="stat-value">${stats.count}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Mean</div>
+                        <div class="stat-value">${stats.mean.toFixed(2)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Median</div>
+                        <div class="stat-value">${stats.median.toFixed(2)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Mode</div>
+                        <div class="stat-value">${stats.mode !== null ? stats.mode.toFixed(2) : 'N/A'}</div>
+                    </div>
+                    <div class="stat-box ${spreadClass(stats.stdDev)}">
+                        <div class="stat-label">Std Dev</div>
+                        <div class="stat-value">${stats.stdDev.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-box ${spreadClass(stats.variance)}">
+                        <div class="stat-label">Variance</div>
+                        <div class="stat-value">${stats.variance.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Min</div>
+                        <div class="stat-value">${stats.min.toFixed(2)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Max</div>
+                        <div class="stat-value">${stats.max.toFixed(2)}</div>
+                    </div>
+                    <div class="stat-box ${spreadClass(stats.range)}">
+                        <div class="stat-label">Range</div>
+                        <div class="stat-value">${stats.range.toFixed(2)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Q1 (25%)</div>
+                        <div class="stat-value">${stats.q1.toFixed(2)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Q3 (75%)</div>
+                        <div class="stat-value">${stats.q3.toFixed(2)}</div>
+                    </div>
+                    <div class="stat-box ${spreadClass(stats.iqr)}">
+                        <div class="stat-label">IQR</div>
+                        <div class="stat-value">${stats.iqr.toFixed(2)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Skewness</div>
+                        <div class="stat-value">${stats.skewness.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Kurtosis</div>
+                        <div class="stat-value">${stats.kurtosis.toFixed(3)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Coeff. Var.</div>
+                        <div class="stat-value">${(cv*100).toFixed(1)}%</div>
+                    </div>
+                </div>
+            </div>`;
+
+            /* ── 3  Charts Row: Histogram + Box Plot ── */
+            modalBody.innerHTML += `
+            <div class="stats-section">
+                <div class="stats-title">Penalty Distribution</div>
+                <div class="charts-row">
+                    <div>
+                        <div class="chart-container"><canvas id="penaltyHistCanvas"></canvas></div>
+                        <div class="hist-legend">
+                            <div class="hist-legend-item"><div class="hist-legend-swatch" style="background:rgba(6,182,212,0.55)"></div>Below Mean</div>
+                            <div class="hist-legend-item"><div class="hist-legend-swatch" style="background:rgba(139,92,246,0.55)"></div>Above Mean</div>
+                            <div class="hist-legend-item"><div class="hist-legend-swatch" style="background:rgba(245,158,11,0.7)"></div>Mean</div>
+                        </div>
+                    </div>
+                    <div class="boxplot-wrap">
+                        <div class="bp-title">Box Plot</div>
+                        <svg id="boxplotSvg"></svg>
+                    </div>
+                </div>
+            </div>`;
+
+            /* ── 4  Build binned histogram ── */
+            const numBins = 10;
+            const binW = (stats.max - stats.min) / numBins || 1;
+            const bins = Array.from({length: numBins}, () => 0);
+            const binLabels = [];
+            allPenalties.forEach(p => {
+                let idx = Math.floor((p - stats.min) / binW);
+                if (idx >= numBins) idx = numBins - 1;
+                bins[idx]++;
+            });
+            for (let i = 0; i < numBins; i++) {
+                const lo = stats.min + i * binW;
+                const hi = lo + binW;
+                binLabels.push(lo.toFixed(2) + ' – ' + hi.toFixed(2));
+            }
+
+            /* colour each bin: below-mean cyan, above-mean purple, straddle orange */
+            const binColors = bins.map((_, i) => {
+                const lo = stats.min + i * binW;
+                const hi = lo + binW;
+                if (hi <= stats.mean)  return 'rgba(6,182,212,0.55)';
+                if (lo >= stats.mean)  return 'rgba(139,92,246,0.55)';
+                return 'rgba(245,158,11,0.7)';   // straddles mean
+            });
+
+            /* destroy previous chart */
+            if (window._histChartInstance) { window._histChartInstance.destroy(); window._histChartInstance = null; }
+
+            const ctx = document.getElementById('penaltyHistCanvas').getContext('2d');
+            window._histChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: binLabels,
+                    datasets: [{
+                        label: 'Students',
+                        data: bins,
+                        backgroundColor: binColors,
+                        borderColor: binColors.map(c => c.replace(/[\d.]+\)$/, '1)')),
+                        borderWidth: 2,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 700, easing: 'easeOutQuart' },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            titleColor: '#06b6d4',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            titleFont: { family: 'JetBrains Mono', size: 12 },
+                            bodyFont:  { family: 'JetBrains Mono', size: 12 },
+                            callbacks: {
+                                title: (items) => 'Penalty ' + items[0].label,
+                                label:  (item)  => ' Students: ' + item.parsed.y
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display:true, text:'Penalty Value', color:'#94a3b8',
+                                font:{ family:'JetBrains Mono', size:11 } },
+                            ticks: { color:'#94a3b8', font:{ family:'JetBrains Mono', size:10 },
+                                maxRotation: 40, minRotation: 30 },
+                            grid: { color:'rgba(51,65,85,0.4)' }
+                        },
+                        y: {
+                            title: { display:true, text:'Number of Students', color:'#94a3b8',
+                                font:{ family:'JetBrains Mono', size:11 } },
+                            ticks: { color:'#94a3b8', font:{ family:'JetBrains Mono' }, stepSize:1 },
+                            grid: { color:'rgba(51,65,85,0.4)' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            /* ── 5  Draw SVG Box Plot ── */
+            (function drawBoxPlot() {
+                const svg = document.getElementById('boxplotSvg');
+                const W = 400, H = 260;
+                svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+                svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+                /* layout */
+                const padT  = 16, padB  = 34;
+                const trackH = H - padT - padB;          // 210
+                const midX   = 88;                        // box centre x
+                const boxW   = 64;
+                const labelX = 200;                       // left edge of label text
+
+                /* value → y  (top = max, bottom = min) */
+                function yOf(v) {
+                    if (stats.max === stats.min) return padT + trackH / 2;
+                    return padT + trackH * (1 - (v - stats.min) / (stats.max - stats.min));
+                }
+
+                /* geometric (unmoved) y's — used for drawing the box */
+                const yMin  = yOf(stats.min);
+                const yMax  = yOf(stats.max);
+                const yQ1   = yOf(stats.q1);
+                const yQ3   = yOf(stats.q3);
+                const yMed  = yOf(stats.median);
+                const yMean = yOf(stats.mean);
+
+                /* ── label list: each carries its geometric y AND its
+                   display y (which we push apart). ────────────────── */
+                let labels = [
+                    { geoY: yMax,  name: 'Max',    val: stats.max,    color: '#94a3b8' },
+                    { geoY: yQ3,   name: 'Q3',     val: stats.q3,     color: '#06b6d4' },
+                    { geoY: yMean, name: 'Mean',   val: stats.mean,   color: '#f59e0b' },
+                    { geoY: yMed,  name: 'Median', val: stats.median, color: '#ffffff' },
+                    { geoY: yQ1,   name: 'Q1',     val: stats.q1,     color: '#06b6d4' },
+                    { geoY: yMin,  name: 'Min',    val: stats.min,    color: '#94a3b8' }
+                ];
+                /* seed displayY from geoY, then sort top-to-bottom */
+                labels.forEach(l => l.dispY = l.geoY);
+                labels.sort((a, b) => a.dispY - b.dispY);
+
+                /* push-apart: enforce minGap between consecutive labels */
+                const minGap = 30;
+                const topBound  = padT + 6;
+                const botBound  = H - padB - 6;
+                /* pin first label to topBound if it would go above */
+                labels[0].dispY = Math.max(labels[0].dispY, topBound);
+                for (let pass = 0; pass < 8; pass++) {
+                    /* forward: push down */
+                    for (let i = 1; i < labels.length; i++) {
+                        const need = labels[i-1].dispY + minGap;
+                        if (labels[i].dispY < need) labels[i].dispY = need;
+                    }
+                    /* backward: push up */
+                    for (let i = labels.length - 2; i >= 0; i--) {
+                        const need = labels[i+1].dispY - minGap;
+                        if (labels[i].dispY > need) labels[i].dispY = need;
+                    }
+                }
+                /* if bottom label overflows, shift whole stack up */
+                const lastY = labels[labels.length - 1].dispY;
+                if (lastY > botBound) {
+                    const shift = lastY - botBound;
+                    labels.forEach(l => l.dispY -= shift);
+                }
+                /* if top label underflows after shift, pin it and push down again */
+                if (labels[0].dispY < topBound) {
+                    labels[0].dispY = topBound;
+                    for (let i = 1; i < labels.length; i++) {
+                        const need = labels[i-1].dispY + minGap;
+                        if (labels[i].dispY < need) labels[i].dispY = need;
+                    }
+                }
+
+                /* ── build SVG string ── */
+                let els = '';
+
+                /* angled connector lines: from right edge of box at geoY
+                   to just left of label at dispY */
+                const connX1 = midX + boxW / 2 + 3;
+                const connX2 = labelX - 10;
+                labels.forEach(l => {
+                    els += `<line x1="${connX1}" y1="${l.geoY}" x2="${connX2}" y2="${l.dispY}"
+                        stroke="rgba(100,116,139,0.45)" stroke-width="1" stroke-dasharray="4 3"/>`;
+                });
+
+                /* whisker stems */
+                els += `<line x1="${midX}" y1="${yMin}" x2="${midX}" y2="${yQ1}"
+                    stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>`;
+                els += `<line x1="${midX}" y1="${yQ3}" x2="${midX}" y2="${yMax}"
+                    stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>`;
+
+                /* whisker caps */
+                const cap = 14;
+                els += `<line x1="${midX-cap}" y1="${yMin}" x2="${midX+cap}" y2="${yMin}"
+                    stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>`;
+                els += `<line x1="${midX-cap}" y1="${yMax}" x2="${midX+cap}" y2="${yMax}"
+                    stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>`;
+
+                /* IQR box */
+                const boxTop = Math.min(yQ1, yQ3);
+                const boxHt  = Math.max(Math.abs(yQ1 - yQ3), 3);
+                els += `<rect x="${midX - boxW/2}" y="${boxTop}" width="${boxW}" height="${boxHt}"
+                    fill="rgba(6,182,212,0.15)" stroke="#06b6d4" stroke-width="2.2" rx="4"/>`;
+
+                /* median line */
+                els += `<line x1="${midX - boxW/2}" y1="${yMed}" x2="${midX + boxW/2}" y2="${yMed}"
+                    stroke="#fff" stroke-width="3" stroke-linecap="round"/>`;
+
+                /* mean diamond */
+                const ds = 6;
+                els += `<polygon points="${midX},${yMean-ds} ${midX+ds},${yMean} ${midX},${yMean+ds} ${midX-ds},${yMean}"
+                    fill="#f59e0b" stroke="#fff" stroke-width="1.5"/>`;
+
+                /* labels */
+                labels.forEach(l => {
+                    els += `<text x="${labelX}" y="${l.dispY - 5}" dominant-baseline="auto"
+                        font-family="JetBrains Mono,monospace" font-size="11" font-weight="600" fill="${l.color}">${l.name}</text>`;
+                    els += `<text x="${labelX}" y="${l.dispY + 8}" dominant-baseline="auto"
+                        font-family="JetBrains Mono,monospace" font-size="10" fill="#64748b">${l.val.toFixed(3)}</text>`;
+                });
+
+                /* bottom legend */
+                const legY  = H - 14;
+                const legX  = 60;
+                els += `<line x1="${legX}" y1="${legY}" x2="${legX+22}" y2="${legY}" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`;
+                els += `<text x="${legX+28}" y="${legY}" dominant-baseline="central"
+                    font-family="JetBrains Mono,monospace" font-size="10" fill="#e2e8f0">Median</text>`;
+                const dX = legX + 110;
+                els += `<polygon points="${dX},${legY-5} ${dX+5},${legY} ${dX},${legY+5} ${dX-5},${legY}" fill="#f59e0b"/>`;
+                els += `<text x="${dX+10}" y="${legY}" dominant-baseline="central"
+                    font-family="JetBrains Mono,monospace" font-size="10" fill="#e2e8f0">Mean</text>`;
+
+                svg.innerHTML = els;
+            })();
+
+            document.getElementById('statsModal').classList.add('show');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
         }
         
         // Close modal when clicking outside
         document.addEventListener('click', (e) => {
-            const modal = document.getElementById('penaltyModal');
-            if (e.target === modal) {
-                closeModal();
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('show');
             }
         });
         
         // Close modal with Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                closeModal();
+                document.querySelectorAll('.modal.show').forEach(modal => {
+                    modal.classList.remove('show');
+                });
             }
         });
         
